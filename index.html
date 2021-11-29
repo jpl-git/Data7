@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html><head>
+  <h3>Jenna Landy, jpl323</h3>
+  
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://d3js.org/topojson.v3.min.js"></script>
+  
+  </head>
+  <body>
+
+
+    <p id="p1">
+      <b>HW 7 SVG:</b><br>
+  
+      <svg id="choropleth" height="770" width="990" style="margin:20px" ></svg>
+      <ul id="uList"></ul>
+
+
+      <style>
+
+      .zips {
+          fill: #eee;
+          stroke: white;
+          stroke-width: 2px;
+        }
+        
+      </style> 
+
+
+      <script>
+
+  const svg = d3.select("#choropleth");
+
+  const width = svg.attr("width");
+  const height = svg.attr("height");
+  const margin = { top: 20, right: 20, bottom: 20, left:20};
+  const mapWidth = width - margin.left - margin.right;
+  const mapHeight = height - margin.top - margin.bottom;
+  const map = svg.append("g")
+                  .attr("transform","translate("+margin.left+","+margin.top+")");
+
+
+      const requestData = async function() 
+      {
+
+        const nyincome = await d3.json('/ny_income.topo.json');
+
+        var zips = topojson.feature(nyincome, nyincome.objects.zip_codes);
+        var zipsMesh = topojson.mesh(nyincome, nyincome.objects.zip_codes);
+        var statesMesh = topojson.mesh(nyincome, nyincome.objects.state); 
+
+        var projection = d3.geoMercator().fitSize([mapWidth, mapHeight], zips);
+        var path = d3.geoPath().projection(projection);
+
+
+        let colArr = ["#662506", "#CC4C02", "#FB9A29", "#FEE391", "#FFF7BC"];
+
+
+        let dataArr = []
+        nyincome.objects.zip_codes.geometries.forEach(d=>
+        {
+          dataArr.push(d.properties.median_income) 
+          
+        })
+
+        let colorScale = d3.scaleQuantile()
+                         .domain(dataArr)
+                         .range(colArr);
+
+
+        map.selectAll("path.zips").data(zips.features)
+            .join("path")
+            .attr("class", "zips")
+            .attr("d", path)
+            .style("stroke", "none")
+            .style("fill", d => colorScale(d.properties.median_income));
+
+        map.append("path").datum(zipsMesh)
+            .attr("class","outline")
+            .attr("d", path)
+            .style("stroke", "white")
+            .style("stroke-width", 1)
+            .style("fill", "none");
+
+        map.append("path").datum(statesMesh)
+            .attr("class","outline")
+            .attr("d", path)
+            .style("stroke", "#3A3B3C")
+            .style("stroke-width", 3)
+            .style("fill", "none");
+
+        let bellCoords = projection( [-76.4850, 42.4476] );
+        map.append("circle")
+                 .attr("cx", bellCoords[0])
+                 .attr("cy", bellCoords[1])
+                 .attr("r",3)
+                 .attr("fill", "black")
+        
+
+      
+       let quantArr = colorScale.quantiles()
+       let uList = d3.select("#uList")
+       
+       quantArr.forEach(d=>
+        {
+          uList.append("li")
+                .text(""+d)
+        })
+                
+       }
+
+      requestData();
+
+      
+
+
+      </script>
+
+<br>Color scale adapted from YlOrBr sequential color scale (https://personal.sron.nl/~pault/).
+      
+
+
+</p>
